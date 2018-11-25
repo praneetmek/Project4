@@ -1,3 +1,4 @@
+import javafx.scene.Node;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -33,7 +34,11 @@ public class GameImpl extends Pane implements Game {
 	private Paddle paddle;
 
 	private int numberOfBottomHits;
+	private int numberOfAnimalsLeft;
+
 	private boolean collisionInFrame;
+
+	ImageView iv1;
 
 	/**
 	 * Constructs a new GameImpl.
@@ -59,10 +64,14 @@ public class GameImpl extends Pane implements Game {
 		ball = new Ball();
 		getChildren().add(ball.getCircle());  // Add the ball to the game board
 
+		numberOfAnimalsLeft=1;
+
 		// Create and add animals ...
 		Image imageOne=new Image("horse.jpg");
-		ImageView iv1=new ImageView();
+		iv1=new ImageView();
 		iv1.setImage(imageOne);
+		iv1.setX(40);
+		iv1.setY(40);
 		getChildren().add(iv1);
 
 
@@ -83,10 +92,11 @@ public class GameImpl extends Pane implements Game {
 		} else {
 			message = "";
 		}
-		Text startLabel=new Text(message);
+		final Label startLabel = new Label(message + "Click mouse to start");
 		startLabel.setLayoutX(WIDTH / 2 - 50);
 		startLabel.setLayoutY(HEIGHT / 2 + 100);
 		getChildren().add(startLabel);
+
 
 		// Add event handler to start the game
 		setOnMouseClicked(new EventHandler<MouseEvent> () {
@@ -134,6 +144,48 @@ public class GameImpl extends Pane implements Game {
 	}
 
 	/**
+	 * Checks if the ball is in collision with the paddle
+	 * @param paddle player's paddle
+	 * @param nball ball which collides with paddle
+	 * @return
+	 */
+	private boolean collisionWith(Paddle paddle,Ball nball){
+		double bottomPaddle = paddle.getY() + paddle.getRectangle().getHeight()/2;
+		double topPaddle = paddle.getY() - paddle.getRectangle().getHeight()/2;
+		double leftPaddle = paddle.getX() - paddle.getRectangle().getWidth()/2;
+		double rightPaddle = paddle.getX() + paddle.getRectangle().getWidth()/2;
+
+		double topBall = nball.getY() - nball.getCircle().getRadius();
+		double bottomBall = nball.getY() + nball.getCircle().getRadius();
+
+		boolean isInsidePaddleHeight = (bottomBall>=topPaddle && bottomBall<=bottomPaddle) ||
+				(topBall>=topPaddle && topBall<=bottomPaddle) ||
+				(bottomBall>bottomPaddle&&topBall<topPaddle);
+		boolean insidePaddleWidth = nball.getX() > leftPaddle&&nball.getX() < rightPaddle;
+		boolean isCollisionWithPaddle = isInsidePaddleHeight && insidePaddleWidth;
+
+		return isCollisionWithPaddle;
+	}
+	private boolean collisionWithSide(ImageView iv){
+		double topBall = ball.getY() - ball.getCircle().getRadius();
+		double bottomBall = ball.getY() + ball.getCircle().getRadius();
+		double leftBall=ball.getX()-ball.getCircle().getRadius();
+		double rightBall=ball.getX()+ball.getCircle().getRadius();
+
+		double topIV=iv.getY();
+		double botIV=topIV+iv.getImage().getHeight();
+		double leftIV=iv.getX();
+		double rightIV=leftIV+iv.getImage().getWidth();
+
+		boolean touchingLeft = (leftBall<rightIV && leftBall>leftIV) &&
+				((topBall>topIV && topBall<botIV) || (bottomBall<botIV && bottomBall>topIV));
+		boolean touchingRight = (rightBall<rightIV && rightBall>leftIV) &&
+				((topBall>topIV && topBall<botIV) || (bottomBall<botIV && bottomBall>topIV));
+		return touchingLeft||touchingRight;
+
+	}
+
+	/**
 	 * Updates the state of the game at each timestep. In particular, this method should
 	 * move the ball, check if the ball collided with any of the animals, walls, or the paddle, etc.
 	 * @param deltaNanoTime how much time (in nanoseconds) has transpired since the last update
@@ -141,38 +193,41 @@ public class GameImpl extends Pane implements Game {
 	 */
 	public GameState runOneTimestep (long deltaNanoTime) {
 		ball.updatePosition(deltaNanoTime);
+		double topBall = ball.getY() - ball.getCircle().getRadius();
+		double bottomBall = ball.getY() + ball.getCircle().getRadius();
+		double leftBall=ball.getX()-ball.getCircle().getRadius();
 
-		double bottomPaddle=paddle.getY()+paddle.getRectangle().getHeight()/2;
-		double topPaddle=paddle.getY()-paddle.getRectangle().getHeight()/2;
-		double leftPaddle=paddle.getX()-paddle.getRectangle().getWidth()/2;
-		double rightPaddle=paddle.getX()+paddle.getRectangle().getWidth()/2;
+		double leftIV=iv1.getX();
+		double rightIV=leftIV+iv1.getImage().getWidth();
 
-		double topBall=ball.getY()-ball.getCircle().getRadius();
-		double bottomBall=ball.getY()+ball.getCircle().getRadius();
 
-		boolean isInsidePaddle=(bottomBall>=topPaddle && bottomBall<=bottomPaddle)||(topBall>=topPaddle && topBall<=bottomPaddle)||(bottomBall>bottomPaddle&&topBall<topPaddle);
-		boolean insidePaddleWidth=ball.getX()>leftPaddle&&ball.getX()<rightPaddle;
-		boolean isCollisionWithPaddle=isInsidePaddle&&insidePaddleWidth;
-		if((isCollisionWithPaddle && !collisionInFrame) || topBall<=0 && topBall>=-5){
+		if((collisionWith(paddle,ball) && !collisionInFrame) || topBall<=0 && topBall>=-5){
 			ball.setVy(-ball.getVy());
 			collisionInFrame=true;
 
-		}
-		else if(bottomBall>=HEIGHT){
+		} else if(bottomBall>=HEIGHT){
 			ball.setVy(-ball.getVy());
 			numberOfBottomHits++;
+		} else if(collisionWithSide(iv1)){
+			getChildren().remove(iv1);
+			ball.setVx(-ball.getVx());
+			numberOfAnimalsLeft--;
 		}
-		if(!isCollisionWithPaddle){
+
+
+		if(!collisionWith(paddle,ball)){
 			collisionInFrame=false;
 		}
+
 		if(ball.getX()+ball.getCircle().getRadius()>=WIDTH-1||ball.getX()-ball.getCircle().getRadius()<=1){
 			ball.setVx(-ball.getVx());
 		}
-		if(numberOfBottomHits==5){
+
+		if(numberOfBottomHits==5)
 			return GameState.LOST;
-		}
-		else {
+		else if(numberOfAnimalsLeft==0)
+			return GameState.WON;
+		else
 			return GameState.ACTIVE;
-		}
 	}
 }
