@@ -3,6 +3,7 @@ import javafx.scene.control.*;
 import javafx.animation.AnimationTimer;
 import javafx.scene.input.MouseEvent;
 import javafx.event.*;
+import com.sun.javafx.application.PlatformImpl;
 import java.util.*;
 
 public class GameImpl extends Pane implements Game {
@@ -26,6 +27,8 @@ public class GameImpl extends Pane implements Game {
 	// Instance variables
 	private Ball ball;
 	private Paddle paddle;
+
+	private int numberOfBottomHits;
 
 	/**
 	 * Constructs a new GameImpl.
@@ -57,6 +60,9 @@ public class GameImpl extends Pane implements Game {
 		paddle = new Paddle();
 		getChildren().add(paddle.getRectangle());  // Add the paddle to the game board
 
+		// initializes bottom hits to 0
+		numberOfBottomHits=0;
+
 		// Add start message
 		final String message;
 		if (state == GameState.LOST) {
@@ -66,7 +72,7 @@ public class GameImpl extends Pane implements Game {
 		} else {
 			message = "";
 		}
-//		final Label label=new Label("sd");
+//		Label label=new Label(message);
 //		startLabel.setLayoutX(WIDTH / 2 - 50);
 //		startLabel.setLayoutY(HEIGHT / 2 + 100);
 //		getChildren().add(startLabel);
@@ -78,7 +84,7 @@ public class GameImpl extends Pane implements Game {
 				GameImpl.this.setOnMouseClicked(null);
 
 				// As soon as the mouse is clicked, remove the startLabel from the game board
-	//			getChildren().remove(startLabel);
+	//				getChildren().remove(startLabel);
 				run();
 			}
 		});
@@ -125,9 +131,31 @@ public class GameImpl extends Pane implements Game {
 	public GameState runOneTimestep (long deltaNanoTime) {
 		ball.updatePosition(deltaNanoTime);
 
-		if(ball.getCircle().getCenterY()+ball.getCircle().getRadius()>paddle.getY()){
-			ball.getCircle().setTranslateY(-getTranslateY());
+		double bottomPaddle=paddle.getY()+paddle.getRectangle().getHeight()/2;
+		double topPaddle=paddle.getY()-paddle.getRectangle().getHeight()/2;
+		double leftPaddle=paddle.getX()-paddle.getRectangle().getWidth()/2;
+		double rightPaddle=paddle.getX()+paddle.getRectangle().getWidth()/2;
+
+		double topBall=ball.getY()-ball.getCircle().getRadius();
+		double bottomBall=ball.getY()+ball.getCircle().getRadius();
+
+		boolean isInsidePaddle=(bottomBall>=topPaddle && bottomBall<=bottomPaddle)||(topBall>=topPaddle && topBall<=bottomPaddle);
+		boolean insidePaddleWidth=ball.getX()>leftPaddle&&ball.getX()<rightPaddle;
+		if((isInsidePaddle && insidePaddleWidth)||topBall<=0){
+			ball.setVy(-ball.getVy());
 		}
-		return GameState.ACTIVE;
+		else if(bottomBall>=HEIGHT){
+			ball.setVy(-ball.getVy());
+			numberOfBottomHits++;
+		}
+		if(ball.getX()+ball.getCircle().getRadius()>WIDTH||ball.getX()-ball.getCircle().getRadius()<0){
+			ball.setVx(-ball.getVx());
+		}
+		if(numberOfBottomHits==5){
+			return GameState.LOST;
+		}
+		else {
+			return GameState.ACTIVE;
+		}
 	}
 }
