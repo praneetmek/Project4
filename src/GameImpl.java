@@ -1,9 +1,13 @@
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.control.*;
 import javafx.animation.AnimationTimer;
 import javafx.scene.input.MouseEvent;
 import javafx.event.*;
 import com.sun.javafx.application.PlatformImpl;
+import javafx.scene.text.Text;
+
 import java.util.*;
 
 public class GameImpl extends Pane implements Game {
@@ -29,6 +33,7 @@ public class GameImpl extends Pane implements Game {
 	private Paddle paddle;
 
 	private int numberOfBottomHits;
+	private boolean collisionInFrame;
 
 	/**
 	 * Constructs a new GameImpl.
@@ -55,6 +60,11 @@ public class GameImpl extends Pane implements Game {
 		getChildren().add(ball.getCircle());  // Add the ball to the game board
 
 		// Create and add animals ...
+		Image imageOne=new Image("horse.jpg");
+		ImageView iv1=new ImageView();
+		iv1.setImage(imageOne);
+		getChildren().add(iv1);
+
 
 		// Create and add paddle
 		paddle = new Paddle();
@@ -63,6 +73,7 @@ public class GameImpl extends Pane implements Game {
 		// initializes bottom hits to 0
 		numberOfBottomHits=0;
 
+		collisionInFrame=false;
 		// Add start message
 		final String message;
 		if (state == GameState.LOST) {
@@ -72,10 +83,10 @@ public class GameImpl extends Pane implements Game {
 		} else {
 			message = "";
 		}
-//		Label label=new Label(message);
-//		startLabel.setLayoutX(WIDTH / 2 - 50);
-//		startLabel.setLayoutY(HEIGHT / 2 + 100);
-//		getChildren().add(startLabel);
+		Text startLabel=new Text(message);
+		startLabel.setLayoutX(WIDTH / 2 - 50);
+		startLabel.setLayoutY(HEIGHT / 2 + 100);
+		getChildren().add(startLabel);
 
 		// Add event handler to start the game
 		setOnMouseClicked(new EventHandler<MouseEvent> () {
@@ -84,7 +95,7 @@ public class GameImpl extends Pane implements Game {
 				GameImpl.this.setOnMouseClicked(null);
 
 				// As soon as the mouse is clicked, remove the startLabel from the game board
-	//				getChildren().remove(startLabel);
+					getChildren().remove(startLabel);
 				run();
 			}
 		});
@@ -139,16 +150,22 @@ public class GameImpl extends Pane implements Game {
 		double topBall=ball.getY()-ball.getCircle().getRadius();
 		double bottomBall=ball.getY()+ball.getCircle().getRadius();
 
-		boolean isInsidePaddle=(bottomBall>=topPaddle && bottomBall<=bottomPaddle)||(topBall>=topPaddle && topBall<=bottomPaddle);
+		boolean isInsidePaddle=(bottomBall>=topPaddle && bottomBall<=bottomPaddle)||(topBall>=topPaddle && topBall<=bottomPaddle)||(bottomBall>bottomPaddle&&topBall<topPaddle);
 		boolean insidePaddleWidth=ball.getX()>leftPaddle&&ball.getX()<rightPaddle;
-		if((isInsidePaddle && insidePaddleWidth)||topBall<=0){
+		boolean isCollisionWithPaddle=isInsidePaddle&&insidePaddleWidth;
+		if((isCollisionWithPaddle && !collisionInFrame) || topBall<=0 && topBall>=-5){
 			ball.setVy(-ball.getVy());
+			collisionInFrame=true;
+
 		}
 		else if(bottomBall>=HEIGHT){
 			ball.setVy(-ball.getVy());
 			numberOfBottomHits++;
 		}
-		if(ball.getX()+ball.getCircle().getRadius()>WIDTH||ball.getX()-ball.getCircle().getRadius()<0){
+		if(!isCollisionWithPaddle){
+			collisionInFrame=false;
+		}
+		if(ball.getX()+ball.getCircle().getRadius()>=WIDTH-1||ball.getX()-ball.getCircle().getRadius()<=1){
 			ball.setVx(-ball.getVx());
 		}
 		if(numberOfBottomHits==5){
