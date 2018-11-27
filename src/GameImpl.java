@@ -281,32 +281,7 @@ public class GameImpl extends Pane implements Game {
 
 		return isCollisionWithPaddle;
 	}
-	private boolean collisionWithSide(ImageView iv){
-		if(getChildren().contains(iv)) {
-			double topBall = ball.getY() - ball.getCircle().getRadius();
-			double bottomBall = ball.getY() + ball.getCircle().getRadius();
-			double leftBall = ball.getX() - ball.getCircle().getRadius();
-			double rightBall = ball.getX() + ball.getCircle().getRadius();
 
-			double topIV = iv.getY();
-			double botIV = topIV + iv.getImage().getHeight();
-			double leftIV = iv.getX();
-			double rightIV = leftIV + iv.getImage().getWidth();
-			boolean inRow = ((topBall >= topIV && topBall <= botIV) || (bottomBall <= botIV && bottomBall >= topIV));
-
-			boolean touchingLeft = leftBall <= rightIV && leftBall >= leftIV && rightBall>rightIV && inRow && ball.getX()<leftIV;
-			boolean touchingRight = (rightBall <= rightIV && rightBall >= leftIV&&leftBall<leftIV) && inRow && ball.getX()>rightIV;
-			if (touchingLeft || touchingRight) {
-				getChildren().remove(iv);
-				animals.remove(iv);
-
-			}
-			return touchingLeft || touchingRight;
-		}
-		else{
-			return false;
-		}
-	}
 	private boolean collisionWithTop(ImageView iv){
 		if(getChildren().contains(iv)) {
 			double topBall = ball.getY() - ball.getCircle().getRadius();
@@ -348,17 +323,16 @@ public class GameImpl extends Pane implements Game {
 
 
 
-		if((collisionWith(paddle,ball) && !collisionInFrame) || topBall<=0 && topBall>=-5){
+		if((collisionWith(paddle,ball) && !collisionInFrame)){
 			ball.setVy(-ball.getVy());
+			collisionInFrame=true;
+		} else if(topBall<=0 && topBall>=-5){
+			ball.setVy(Math.pow(SPEED_FACTOR/Math.sqrt(2),16-animals.size())* Ball.INITIAL_VY);
 			collisionInFrame=true;
 
 		} else if(bottomBall>=HEIGHT){
-			ball.setVy(-ball.getVy());
+			ball.setVy(-Math.pow(SPEED_FACTOR/Math.sqrt(2),16-animals.size())* Ball.INITIAL_VY);
 			numberOfBottomHits++;
-		} else if(collisionWithSide(iv1)||collisionWithSide(iv2)||collisionWithSide(iv3)||collisionWithSide(iv4)){
-			//ball.setVx(-ball.getVx());
-
-			System.out.println("collision with side");
 		} else if(collisionWithTop(iv1)||collisionWithTop(iv2)||collisionWithTop(iv3) ||collisionWithTop(iv4)
 				||collisionWithTop(iv5)||collisionWithTop(iv6)||collisionWithTop(iv7)||collisionWithTop(iv8)
 				||collisionWithTop(iv9)||collisionWithTop(iv10)||collisionWithTop(iv11)||collisionWithTop(iv12)
@@ -374,8 +348,10 @@ public class GameImpl extends Pane implements Game {
 			collisionInFrame=false;
 		}
 
-		if(ball.getX()+ball.getCircle().getRadius()>=WIDTH-1||ball.getX()-ball.getCircle().getRadius()<=1){
-			ball.setVx(-ball.getVx());
+		if(ball.getX()+ball.getCircle().getRadius()>=WIDTH-1){
+			ball.setVx(-Math.pow(SPEED_FACTOR/Math.sqrt(2),16-animals.size())* Ball.INITIAL_VX);
+		}else if(ball.getX()-ball.getCircle().getRadius()<=1){
+			ball.setVx(Math.pow(SPEED_FACTOR/Math.sqrt(2),16-animals.size())* Ball.INITIAL_VX);
 		}
 
 		if(numberOfBottomHits==5)
